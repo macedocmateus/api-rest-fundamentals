@@ -10,16 +10,14 @@ export async function transactionsRoutes(app: FastifyInstance) {
         {
             preHandler: [checkSessionIdExists],
         },
-        async (request, reply) => {
+        async (request) => {
             const { sessionId } = request.cookies;
 
             const transactions = await knex('transactions')
                 .where('session_id', sessionId)
                 .select();
 
-            return {
-                transactions,
-            };
+            return { transactions };
         },
     );
 
@@ -86,7 +84,7 @@ export async function transactionsRoutes(app: FastifyInstance) {
             if (!sessionId) {
                 sessionId = randomUUID();
 
-                reply.cookie('sessionId', sessionId, {
+                reply.setCookie('sessionId', sessionId, {
                     path: '/',
                     maxAge: 60 * 60 * 24 * 7, // 7 days
                 });
