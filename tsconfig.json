@@ -13,10 +13,6 @@
         ],
         "module": "nodenext",
         "target": "es2022",
-        "baseUrl": "./src",
-        "paths": {
-            "@/*": ["*"]
-        },
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,

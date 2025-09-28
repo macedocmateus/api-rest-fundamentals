@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { knex } from '@/database';
-import { checkSessionIdExists } from '@/middlewares/check-session-id-exist';
+import { knex } from '../database';
+import { checkSessionIdExists } from '../middlewares/check-session-id-exist';
 
 export async function transactionsRoutes(app: FastifyInstance) {
     app.get(
@@ -63,41 +63,35 @@ export async function transactionsRoutes(app: FastifyInstance) {
         },
     );
 
-    app.post(
-        '/',
-        {
-            preHandler: [checkSessionIdExists],
-        },
-        async (request, reply) => {
-            const createTransactionBodySchema = z.object({
-                title: z.string(),
-                amount: z.number(),
-                type: z.enum(['credit', 'debit']),
+    app.post('/', async (request, reply) => {
+        const createTransactionBodySchema = z.object({
+            title: z.string(),
+            amount: z.number(),
+            type: z.enum(['credit', 'debit']),
+        });
+
+        const { title, amount, type } = createTransactionBodySchema.parse(
+            request.body,
+        );
+
+        let sessionId = request.cookies.sessionId;
+
+        if (!sessionId) {
+            sessionId = randomUUID();
+
+            reply.setCookie('sessionId', sessionId, {
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7, // 7 days
             });
+        }
 
-            const { title, amount, type } = createTransactionBodySchema.parse(
-                request.body,
-            );
+        await knex('transactions').insert({
+            id: randomUUID(),
+            title,
+            amount: type === 'credit' ? amount : amount * -1,
+            session_id: sessionId,
+        });
 
-            let sessionId = request.cookies.sessionId;
-
-            if (!sessionId) {
-                sessionId = randomUUID();
-
-                reply.setCookie('sessionId', sessionId, {
-                    path: '/',
-                    maxAge: 60 * 60 * 24 * 7, // 7 days
-                });
-            }
-
-            await knex('transactions').insert({
-                id: randomUUID(),
-                title,
-                amount: type === 'credit' ? amount : amount * -1,
-                session_id: sessionId,
-            });
-
-            return reply.status(201).send();
-        },
-    );
+        return reply.status(201).send();
+    });
 }
