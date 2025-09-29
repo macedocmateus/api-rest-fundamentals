@@ -1,6 +1,9 @@
+import { execSync } from 'node:child_process';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../src/app';
+
+// Teste E2E simulando um usuário interagindo com aplicação
 
 describe('Transactions routes', () => {
     beforeAll(async () => {
@@ -11,8 +14,14 @@ describe('Transactions routes', () => {
         await app.close();
     });
 
+    // Para cada teste é apagado o banco e recriado novamente
+    beforeEach(() => {
+        execSync('npm run knex migrate:rollback --all');
+        execSync('npm run knex migrate:latest');
+    });
+
     it('should be able to create a new transaction', async () => {
-        await request(app.server)
+        const response = await request(app.server)
             .post('/transactions')
             .send({
                 title: 'New transaction',
